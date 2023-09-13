@@ -1,0 +1,127 @@
+interface(echo=4);
+with(LinearAlgebra):
+with(plots):
+
+
+#with(plottools):
+#animate(plots:-arrow,[[0.1*cos(t),0.1*sin(t)],[cos(t),sin(t)]],t=0..4*Pi,view=[-1..1,-1..1]);
+#animate(plots:-arrow,{[[0.1*cos(t),0.1*sin(t)],[cos(t),sin(t)]],
+#                      [[0.1*cos(t+0.1),0.1*sin(t+0.1)],[cos(t+0.1),sin(t+0.1)]]},t=0..4*Pi,view=[-1..1,-1..1]);
+
+
+
+#-----------------------------------------------------------------------
+# Parametrise shape: 0 [symmetric] < q < 1/2 [straight because inclined
+# arm then has zero length]
+# l (q-1/2) < s < l (q+1/2)
+#-----------------------------------------------------------------------
+r_body_frame_neg_s[1]:=-s*cos(alpha);
+r_body_frame_neg_s[2]:=-s*sin(alpha);
+
+r_body_frame_pos_s[1]:=s;
+r_body_frame_pos_s[2]:=0;
+
+# Test parameters
+test_parameters:=[l=1,q=0,alpha=0.3*Pi,R0[1](t)=2*t,R0[2](t)=t,theta(t)=t];
+
+#-----------------------------------------------------------------------
+# Rotate:
+#-----------------------------------------------------------------------
+r_lab_frame_neg_s[1]:=R0[1](t)+r_body_frame_neg_s[1]*cos(theta(t))
+                              -r_body_frame_neg_s[2]*sin(theta(t));
+r_lab_frame_neg_s[2]:=R0[2](t)+r_body_frame_neg_s[1]*sin(theta(t))
+                              +r_body_frame_neg_s[2]*cos(theta(t));
+
+r_lab_frame_pos_s[1]:=R0[1](t)+r_body_frame_pos_s[1]*cos(theta(t))
+                              -r_body_frame_pos_s[2]*sin(theta(t));
+r_lab_frame_pos_s[2]:=R0[2](t)+r_body_frame_pos_s[1]*sin(theta(t))
+                              +r_body_frame_pos_s[2]*cos(theta(t));
+
+
+
+#-----------------------------------------------------------------------
+# Have a look...
+#-----------------------------------------------------------------------
+animate(plot,[[
+         [subs(test_parameters,r_lab_frame_neg_s[1]),
+          subs(test_parameters,r_lab_frame_neg_s[2]),
+          s=-1/2..0],
+         [subs(test_parameters,r_lab_frame_pos_s[1]),
+          subs(test_parameters,r_lab_frame_pos_s[2]),
+          s=0..1/2]
+         ]],t=0..1,scaling=constrained);
+
+
+
+#-----------------------------------------------------------------------
+# Tangents:
+#-----------------------------------------------------------------------
+tangent_lab_frame_neg_s[1]:=diff(r_lab_frame_neg_s[1],s);
+tangent_lab_frame_neg_s[2]:=diff(r_lab_frame_neg_s[2],s);
+
+tangent_lab_frame_pos_s[1]:=diff(r_lab_frame_pos_s[1],s);
+tangent_lab_frame_pos_s[2]:=diff(r_lab_frame_pos_s[2],s);
+
+
+
+t_plot:=0.1;
+arrow_list_neg_s:=arrow({seq(
+ <subs(t=t_plot,subs(test_parameters,r_lab_frame_neg_s[1])),
+  subs(t=t_plot,subs(test_parameters,r_lab_frame_neg_s[2]))>, s = -1/2 .. 0)},scaling=constrained):
+display(arrow_list_neg_s);
+
+
+
+
+
+#-----------------------------------------------------------------------
+# Velocities
+#-----------------------------------------------------------------------
+far_field_veloc_lab_frame:=Vector([x[2],0]);
+far_field_veloc_lab_frame_neg_s:=subs(x[2]=r_lab_frame_neg_s[2],far_field_veloc_lab_frame);
+far_field_veloc_lab_frame_pos_s:=subs(x[2]=r_lab_frame_pos_s[2],far_field_veloc_lab_frame);
+
+
+
+fibre_veloc_lab_frame_neg_s:=Vector([diff(r_lab_frame_neg_s[1],t),
+                                     diff(r_lab_frame_neg_s[2],t)]);
+
+fibre_veloc_lab_frame_pos_s:=Vector([diff(r_lab_frame_pos_s[1],t),
+                                     diff(r_lab_frame_pos_s[2],t)]);
+
+
+
+
+
+
+#-----------------------------------------------------------------------
+# Resistance matrix
+#-----------------------------------------------------------------------
+resistance_matrix_neg_s:=Matrix([[1-1/2*tangent_lab_frame_neg_s[1]^2,-1/2*tangent_lab_frame_neg_s[1]*tangent_lab_frame_neg_s[2]],
+                                 [-1/2*tangent_lab_frame_neg_s[1]*tangent_lab_frame_neg_s[2],1-1/2*tangent_lab_frame_neg_s[2]^2]]);
+                                
+resistance_matrix_pos_s:=Matrix([[1-1/2*tangent_lab_frame_pos_s[1]^2,-1/2*tangent_lab_frame_pos_s[1]*tangent_lab_frame_pos_s[2]],
+                                 [-1/2*tangent_lab_frame_pos_s[1]*tangent_lab_frame_pos_s[2],1-1/2*tangent_lab_frame_pos_s[2]^2]]);
+                                
+
+
+#-----------------------------------------------------------------------
+# traction
+#-----------------------------------------------------------------------
+traction_lab_frame_neg_s:=Vector(2):
+traction_lab_frame_neg_s:=resistance_matrix_neg_s.(far_field_veloc_lab_frame-fibre_veloc_lab_frame_neg_s);
+
+traction_lab_frame_pos_s:=Vector(2):
+traction_lab_frame_pos_s:=resistance_matrix_pos_s.(far_field_veloc_lab_frame-fibre_veloc_lab_frame_pos_s);
+
+
+#-----------------------------------------------------------------------
+# drag
+#-----------------------------------------------------------------------
+traction_lab_frame:=Vector([int(traction_lab_frame_neg_s[1],s=(q-1/2)..0)+
+                            int(traction_lab_frame_pos_s[1],s=(q+1/2)..0),
+                            int(traction_lab_frame_neg_s[2],s=(q-1/2)..0)+
+                            int(traction_lab_frame_pos_s[2],s=(q+1/2)..0)]);
+
+
+
