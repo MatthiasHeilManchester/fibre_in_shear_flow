@@ -9,6 +9,68 @@ with(plots):
 #                      [[0.1*cos(t+0.1),0.1*sin(t+0.1)],[cos(t+0.1),sin(t+0.1)]]},t=0..4*Pi,view=[-1..1,-1..1]);
 
 
+# Digits:=40;
+
+#-----------------------------------------------------------------------
+# 
+#-----------------------------------------------------------------------
+A_matrix:=Matrix([[A11,A12,B13_tilde],
+                  [A21,A22,B23_tilde],
+                  [B31,B32,C33]]);
+
+A11:=1/8*(5-2*q+(2*q-1)*cos(2*alpha));
+A12:=1/8*(2*q-1)*sin(2*alpha);
+A21:=A12;
+A22:=1+1/4*(2*q-1)*(sin(alpha))^2;
+B13_tilde:=-1/8*(1-2*q)^2*sin(alpha);
+B31:=B13_tilde;
+B23_tilde:=1/8*((2*q+1)^2+(1-2*q)^2*cos(alpha));
+B32:=B23_tilde;
+C33:=1/12+q^2;
+
+
+
+#-----------------------------------------------------------------------
+# 
+#-----------------------------------------------------------------------
+G_matrix:=Matrix([[G11_hat,G12_hat],
+                  [G21_hat,G22_hat],
+                  [H31_hat,H32_hat]]);
+
+
+G11_hat:=1/32*(2*(2*q+1)^2 + 3*(1-2*q)^2*cos(alpha)-(1-2*q)^2*cos(3*alpha));
+G12_hat:=1/8*(1-2*q)^2*(sin(alpha))^3;
+G21_hat:=-1/16*(1-2*q)^2*(2+cos(2*alpha))*sin(alpha);
+G22_hat:=1/32*(4*(2*q+1)^2+3*(1-2*q)^2*cos(alpha)+(1-2*q)^2*cos(3*alpha));
+H31_hat:=1/24*(2*q-1)^3*sin(2*alpha);
+H32_hat:=1/24*((2*q+1)^3-(2*q-1)^3*cos(2*alpha));
+
+
+#-----------------------------------------------------------------------
+# 
+#-----------------------------------------------------------------------
+g_hat_matrix:=MatrixInverse(A_matrix).G_matrix:
+
+h31_hat:=g_hat_matrix[3,1];
+h32_hat:=g_hat_matrix[3,2];
+
+#-----------------------------------------------------------------------
+# 
+#-----------------------------------------------------------------------
+specific_values_list:=[alpha=Pi/4,q=0.4];
+
+theta_eq:=evalf(subs(specific_values_list,1/2*arctan(h31_hat,h32_hat)));
+condition_for_stable_fixed_point_this_has_to_be_bigger_than_1:=evalf(subs(specific_values_list,h31_hat^2+h32_hat^2));
+
+
+
+
+@@@
+
+
+
+
+
 
 #-----------------------------------------------------------------------
 # Parametrise shape: 0 [symmetric] < q < 1/2 [straight because inclined
@@ -22,7 +84,7 @@ r_body_frame_pos_s[1]:=s;
 r_body_frame_pos_s[2]:=0;
 
 # Test parameters
-test_parameters:=[l=1,q=0,alpha=0.3*Pi,R0[1](t)=2*t,R0[2](t)=t,theta(t)=t];
+test_parameters:=[q=0,alpha=0.3*Pi,R0[1](t)=2*t,R0[2](t)=t,theta(t)=t];
 
 #-----------------------------------------------------------------------
 # Rotate:
@@ -64,31 +126,98 @@ tangent_lab_frame_pos_s[2]:=diff(r_lab_frame_pos_s[2],s);
 
 
 
-t_plot:=0.1;
-arrow_list_neg_s:=arrow({seq(
- <subs(t=t_plot,subs(test_parameters,r_lab_frame_neg_s[1])),
-  subs(t=t_plot,subs(test_parameters,r_lab_frame_neg_s[2]))>, s = -1/2 .. 0)},scaling=constrained):
-display(arrow_list_neg_s);
-
+#t_plot:=0.1;
+#arrow_list_neg_s:=arrow({seq(
+# <subs(t=t_plot,subs(test_parameters,r_lab_frame_neg_s[1])),
+#  subs(t=t_plot,subs(test_parameters,r_lab_frame_neg_s[2]))>, s = -1/2 .. 0)},scaling=constrained):
+#display(arrow_list_neg_s);
 
 
 
 
 #-----------------------------------------------------------------------
-# Velocities
+# Far field velocity
 #-----------------------------------------------------------------------
-far_field_veloc_lab_frame:=Vector([x[2],0]);
-far_field_veloc_lab_frame_neg_s:=subs(x[2]=r_lab_frame_neg_s[2],far_field_veloc_lab_frame);
-far_field_veloc_lab_frame_pos_s:=subs(x[2]=r_lab_frame_pos_s[2],far_field_veloc_lab_frame);
+test_flow_parameters:=[];
+plot_test_flow_parameters:=[];
+
+
+far_field_veloc_type:="constant_flow1";
+far_field_veloc_type:="constant_flow2";
+far_field_veloc_type:="rigid_body_rotation";
+far_field_veloc_type:="shear_flow1";
+far_field_veloc_type:="shear_flow2";
+far_field_veloc_type:="shear_flow";
+
+#---------------------------------------------------
+# Shear flow: Vertical straight fibre, centred at origin
+# should experience zero drag.
+#---------------------------------------------------
+if far_field_veloc_type = "shear_flow1" then
+  far_field_veloc_lab_frame:=Vector([x[2],0]);
+  test_flow_parameters:=[q=0,alpha=Pi,theta(t)=Pi/2,R0[1](t)=0,R0[2](t)=0];
+  plot_test_flow_parameters:=[UU=0.2,VV=0.2,t=0.2]; 
+#---------------------------------------------------
+# Shear flow: Vertical straight fibre, rotating with
+# shear rate should experience zero drag and torque
+# (at t=0 only!)
+#---------------------------------------------------
+elif far_field_veloc_type = "shear_flow2" then
+  far_field_veloc_lab_frame:=Vector([x[2],0]);
+  test_flow_parameters:=[q=0,alpha=Pi,theta(t)=Pi/2-t,R0[1](t)=0,R0[2](t)=0];
+  plot_test_flow_parameters:=[UU=0.2,VV=0.2,t=0.2]; 
+#---------------------------------------------------
+# Shear flow: Allegedly there are solutions with
+# constant orientation (Theta_eq) and constant
+# vertical drift (VV).
+#---------------------------------------------------
+elif far_field_veloc_type = "shear_flow" then
+  far_field_veloc_lab_frame:=Vector([x[2],0]);
+  test_flow_parameters:=[theta(t)=Theta_eq,R0[1](t)=UU*t,R0[2](t)=VV*t];
+  plot_test_flow_parameters:=[q=0,alpha=0.3,Theta_eq=0.2,UU=0.2,VV=0.2,t=0.2]; 
+#---------------------------------------------------
+# Constant flow; should have drag only in x direction
+#---------------------------------------------------
+elif far_field_veloc_type = "constant_flow1" then
+  far_field_veloc_lab_frame:=Vector([1,0]);
+  test_flow_parameters:=[q=0,theta(t)=-alpha/2,R0[1](t)=0,R0[2](t)=0];
+  plot_test_flow_parameters:=[alpha=0.3]; 
+#---------------------------------------------------
+# Constant flow; should have zero drag
+#---------------------------------------------------
+elif far_field_veloc_type = "constant_flow2" then
+  far_field_veloc_lab_frame:=Vector([UU,VV]);
+  test_flow_parameters:=[q=0,theta(t)=-alpha/2,R0[1](t)=UU*t,R0[2](t)=VV*t];
+  plot_test_flow_parameters:=[UU=1,VV=1,alpha=0.3,t=0.2];
+#---------------------------------------------------
+# Rigid body rotation
+#---------------------------------------------------
+elif far_field_veloc_type = "rigid_body_rotation" then
+  far_field_veloc_lab_frame:=Vector([-Omega*x[2],Omega*x[1]]);
+  test_flow_parameters:=[q=0,theta(t)=Omega*t,R0[1](t)=0,R0[2](t)=0];
+  plot_test_flow_parameters:=[Omega=0.3,alpha=0.3,t=0.2];
+else
+  print("ERROR: wrong far_field_veloc_type");
+end if;
 
 
 
+#-----------------------------------------------------------------------
+# Far field velocity evaluated on fibre
+#-----------------------------------------------------------------------
+far_field_veloc_lab_frame_neg_s:=subs(x[1]=r_lab_frame_neg_s[1],x[2]=r_lab_frame_neg_s[2],far_field_veloc_lab_frame);
+far_field_veloc_lab_frame_pos_s:=subs(x[1]=r_lab_frame_pos_s[1],x[2]=r_lab_frame_pos_s[2],far_field_veloc_lab_frame);
+
+
+
+#-----------------------------------------------------------------------
+# Fibre velocity from kinematics
+#-----------------------------------------------------------------------
 fibre_veloc_lab_frame_neg_s:=Vector([diff(r_lab_frame_neg_s[1],t),
                                      diff(r_lab_frame_neg_s[2],t)]);
 
 fibre_veloc_lab_frame_pos_s:=Vector([diff(r_lab_frame_pos_s[1],t),
                                      diff(r_lab_frame_pos_s[2],t)]);
-
 
 
 
@@ -109,19 +238,46 @@ resistance_matrix_pos_s:=Matrix([[1-1/2*tangent_lab_frame_pos_s[1]^2,-1/2*tangen
 # traction
 #-----------------------------------------------------------------------
 traction_lab_frame_neg_s:=Vector(2):
-traction_lab_frame_neg_s:=resistance_matrix_neg_s.(far_field_veloc_lab_frame-fibre_veloc_lab_frame_neg_s);
+traction_lab_frame_neg_s:=resistance_matrix_neg_s.(far_field_veloc_lab_frame_neg_s-fibre_veloc_lab_frame_neg_s);
 
 traction_lab_frame_pos_s:=Vector(2):
-traction_lab_frame_pos_s:=resistance_matrix_pos_s.(far_field_veloc_lab_frame-fibre_veloc_lab_frame_pos_s);
+traction_lab_frame_pos_s:=resistance_matrix_pos_s.(far_field_veloc_lab_frame_pos_s-fibre_veloc_lab_frame_pos_s);
 
 
 #-----------------------------------------------------------------------
 # drag
 #-----------------------------------------------------------------------
-traction_lab_frame:=Vector([int(traction_lab_frame_neg_s[1],s=(q-1/2)..0)+
-                            int(traction_lab_frame_pos_s[1],s=(q+1/2)..0),
-                            int(traction_lab_frame_neg_s[2],s=(q-1/2)..0)+
-                            int(traction_lab_frame_pos_s[2],s=(q+1/2)..0)]);
+drag_lab_frame:=Vector([int(traction_lab_frame_neg_s[1],s=(q-1/2)..0)+
+                        int(traction_lab_frame_pos_s[1],s=0..(q+1/2)),
+                        int(traction_lab_frame_neg_s[2],s=(q-1/2)..0)+
+                        int(traction_lab_frame_pos_s[2],s=0..(q+1/2))]);
+
+#-----------------------------------------------------------------------
+# torque about lab frame origin hierher should this be cog?
+#-----------------------------------------------------------------------
+infinitesimal_torque_neg_s:=r_lab_frame_neg_s[1]*traction_lab_frame_neg_s[2]-
+                            r_lab_frame_neg_s[2]*traction_lab_frame_neg_s[1];
+
+infinitesimal_torque_pos_s:=r_lab_frame_pos_s[1]*traction_lab_frame_pos_s[2]-
+                            r_lab_frame_pos_s[2]*traction_lab_frame_pos_s[1];
+
+torque_lab_frame:=int(infinitesimal_torque_neg_s,s=(q-1/2)..0)+
+                  int(infinitesimal_torque_pos_s,s=0..(q+1/2));
 
 
 
+
+
+
+test_drag_x:=simplify(eval(subs(test_flow_parameters,drag_lab_frame[1])));
+test_drag_y:=simplify(eval(subs(test_flow_parameters,drag_lab_frame[2])));
+test_torque:=simplify(eval(subs(test_flow_parameters,torque_lab_frame)));
+
+plot([
+     [subs(plot_test_flow_parameters,subs(test_flow_parameters,r_lab_frame_neg_s[1])),
+      subs(plot_test_flow_parameters,subs(test_flow_parameters,r_lab_frame_neg_s[2])),
+          s=-1/2..0],
+     [subs(plot_test_flow_parameters,subs(test_flow_parameters,r_lab_frame_pos_s[1])),
+      subs(plot_test_flow_parameters,subs(test_flow_parameters,r_lab_frame_pos_s[2])),
+          s=0..1/2]
+      ],scaling=constrained);
