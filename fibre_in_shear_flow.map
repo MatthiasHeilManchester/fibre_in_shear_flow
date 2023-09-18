@@ -63,9 +63,22 @@ theta_eq:=evalf(subs(specific_values_list,1/2*arctan(h31_hat,h32_hat)));
 condition_for_stable_fixed_point_this_has_to_be_bigger_than_1:=evalf(subs(specific_values_list,h31_hat^2+h32_hat^2));
 
 
+#-----------------------------------------------------------------------
+# 
+#-----------------------------------------------------------------------
+soln_for_theta_eq:= solve(-1+h31*sin(2*theta)+h32*cos(2*theta)=0,theta);
 
 
-@@@
+
+#-----------------------------------------------------------------------
+# 
+#-----------------------------------------------------------------------
+hh_31 := evalf(subs(specific_values_list,h31_hat));
+hh_32 := evalf(subs(specific_values_list,h32_hat));
+theta_eq1:=evalf(subs(h31=hh_31,h32=hh_32,soln_for_theta_eq[1]));
+theta_eq2:=evalf(subs(h31=hh_31,h32=hh_32,soln_for_theta_eq[2]));
+
+
 
 
 
@@ -147,7 +160,9 @@ far_field_veloc_type:="constant_flow2";
 far_field_veloc_type:="rigid_body_rotation";
 far_field_veloc_type:="shear_flow1";
 far_field_veloc_type:="shear_flow2";
-far_field_veloc_type:="shear_flow";
+far_field_veloc_type:="shear_flow_jfm";
+far_field_veloc_type:="shear_flow3";
+far_field_veloc_type:="shear_flow4";
 
 #---------------------------------------------------
 # Shear flow: Vertical straight fibre, centred at origin
@@ -175,6 +190,31 @@ elif far_field_veloc_type = "shear_flow" then
   far_field_veloc_lab_frame:=Vector([x[2],0]);
   test_flow_parameters:=[theta(t)=Theta_eq,R0[1](t)=UU*t,R0[2](t)=VV*t];
   plot_test_flow_parameters:=[q=0,alpha=0.3,Theta_eq=0.2,UU=0.2,VV=0.2,t=0.2]; 
+#---------------------------------------------------
+# Shear flow as in JFM.
+#---------------------------------------------------
+elif far_field_veloc_type = "shear_flow_jfm" then
+  far_field_veloc_lab_frame:=Vector([x[2],0]);
+  test_flow_parameters:=[op(specific_values_list),theta(t)=theta_eq1,R0[1](t)=1/2*VV*t^2+UUU0*t+XXX0,R0[2](t)=VV*t];
+  plot_test_flow_parameters:=[UU=0.2,VV=0.2,t=0.2]; 
+#---------------------------------------------------
+# Shear flow ... This should create a constant torque
+# and constant y drag, but x drag increases somehow
+# (until we've fixed the right time-dependence)
+#---------------------------------------------------
+elif far_field_veloc_type = "shear_flow3" then
+  far_field_veloc_lab_frame:=Vector([x[2],0]);
+  test_flow_parameters:=[q=0,alpha=Pi/3,theta(t)=-Pi/6,R0[1](t)=1/2*VV*t^2,R0[2](t)=VV*t];
+  plot_test_flow_parameters:=[VV=0.2,t=0.2];
+#---------------------------------------------------
+# Shear flow ... This should create a constant torque
+# and constant y drag, but x drag increases somehow
+# (until we've fixed the right time-dependence)                      <---- hierher
+#---------------------------------------------------
+elif far_field_veloc_type = "shear_flow4" then
+  far_field_veloc_lab_frame:=Vector([x[2],0]);
+  test_flow_parameters:=[op(specific_values_list),theta(t)=Theta_eq,R0[1](t)=1/2*VV*t^2+UUU0*t,R0[2](t)=VV*t];
+  plot_test_flow_parameters:=[Theta_eq=theta_eq1,VV=0.2,UUU0=0,t=0.2]; 
 #---------------------------------------------------
 # Constant flow; should have drag only in x direction
 #---------------------------------------------------
@@ -226,11 +266,11 @@ fibre_veloc_lab_frame_pos_s:=Vector([diff(r_lab_frame_pos_s[1],t),
 #-----------------------------------------------------------------------
 # Resistance matrix
 #-----------------------------------------------------------------------
-resistance_matrix_neg_s:=Matrix([[1-1/2*tangent_lab_frame_neg_s[1]^2,-1/2*tangent_lab_frame_neg_s[1]*tangent_lab_frame_neg_s[2]],
-                                 [-1/2*tangent_lab_frame_neg_s[1]*tangent_lab_frame_neg_s[2],1-1/2*tangent_lab_frame_neg_s[2]^2]]);
+resistance_matrix_neg_s:=Matrix([[1-1/2*tangent_lab_frame_neg_s[1]^2,                            -1/2*tangent_lab_frame_neg_s[1]*tangent_lab_frame_neg_s[2]],
+                                 [ -1/2*tangent_lab_frame_neg_s[1]*tangent_lab_frame_neg_s[2],  1-1/2*tangent_lab_frame_neg_s[2]^2]]);
                                 
-resistance_matrix_pos_s:=Matrix([[1-1/2*tangent_lab_frame_pos_s[1]^2,-1/2*tangent_lab_frame_pos_s[1]*tangent_lab_frame_pos_s[2]],
-                                 [-1/2*tangent_lab_frame_pos_s[1]*tangent_lab_frame_pos_s[2],1-1/2*tangent_lab_frame_pos_s[2]^2]]);
+resistance_matrix_pos_s:=Matrix([[1-1/2*tangent_lab_frame_pos_s[1]^2,                           -1/2*tangent_lab_frame_pos_s[1]*tangent_lab_frame_pos_s[2]],
+                                 [ -1/2*tangent_lab_frame_pos_s[1]*tangent_lab_frame_pos_s[2],  1-1/2*tangent_lab_frame_pos_s[2]^2]]);
                                 
 
 
@@ -255,11 +295,11 @@ drag_lab_frame:=Vector([int(traction_lab_frame_neg_s[1],s=(q-1/2)..0)+
 #-----------------------------------------------------------------------
 # torque about lab frame origin hierher should this be cog?
 #-----------------------------------------------------------------------
-infinitesimal_torque_neg_s:=r_lab_frame_neg_s[1]*traction_lab_frame_neg_s[2]-
-                            r_lab_frame_neg_s[2]*traction_lab_frame_neg_s[1];
+infinitesimal_torque_neg_s:=(r_lab_frame_neg_s[1]-R0[1](t))*traction_lab_frame_neg_s[2]-
+                            (r_lab_frame_neg_s[2]-R0[2](t))*traction_lab_frame_neg_s[1];
 
-infinitesimal_torque_pos_s:=r_lab_frame_pos_s[1]*traction_lab_frame_pos_s[2]-
-                            r_lab_frame_pos_s[2]*traction_lab_frame_pos_s[1];
+infinitesimal_torque_pos_s:=(r_lab_frame_pos_s[1]-R0[1](t))*traction_lab_frame_pos_s[2]-
+                            (r_lab_frame_pos_s[2]-R0[2](t))*traction_lab_frame_pos_s[1];
 
 torque_lab_frame:=int(infinitesimal_torque_neg_s,s=(q-1/2)..0)+
                   int(infinitesimal_torque_pos_s,s=0..(q+1/2));
@@ -276,8 +316,8 @@ test_torque:=simplify(eval(subs(test_flow_parameters,torque_lab_frame)));
 plot([
      [subs(plot_test_flow_parameters,subs(test_flow_parameters,r_lab_frame_neg_s[1])),
       subs(plot_test_flow_parameters,subs(test_flow_parameters,r_lab_frame_neg_s[2])),
-          s=-1/2..0],
+          s=subs(test_flow_parameters,(q-1/2))..0],
      [subs(plot_test_flow_parameters,subs(test_flow_parameters,r_lab_frame_pos_s[1])),
       subs(plot_test_flow_parameters,subs(test_flow_parameters,r_lab_frame_pos_s[2])),
-          s=0..1/2]
+          s=0..subs(test_flow_parameters,(q+1/2))]
       ],scaling=constrained);
