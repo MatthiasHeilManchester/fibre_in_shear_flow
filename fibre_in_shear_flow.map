@@ -3,16 +3,29 @@ with(LinearAlgebra):
 with(plots):
 
 
-#with(plottools):
-#animate(plots:-arrow,[[0.1*cos(t),0.1*sin(t)],[cos(t),sin(t)]],t=0..4*Pi,view=[-1..1,-1..1]);
-#animate(plots:-arrow,{[[0.1*cos(t),0.1*sin(t)],[cos(t),sin(t)]],
-#                      [[0.1*cos(t+0.1),0.1*sin(t+0.1)],[cos(t+0.1),sin(t+0.1)]]},t=0..4*Pi,view=[-1..1,-1..1]);
+tangent_start:=Vector(2);
+tangent_end  :=Vector(2);
+
+tangent_start:=[cos(alpha_start),sin(alpha_start)];
+tangent_end  :=[cos(alpha_end  ),sin(alpha_end)];
 
 
-# Digits:=40;
+r_curved:=(s-1/2*s^2)*tangent_start+1/2*s^2*tangent_end;
+
+angle_list:=[alpha_start=-Pi/2, alpha_end=0];
+plot([subs(angle_list,r_curved[1]),
+      subs(angle_list,r_curved[2]),      
+      s=0..1],scaling=constrained);
+
+
+
+###################################################################
+# Roggeveen and Stone JFM
+###################################################################
+
 
 #-----------------------------------------------------------------------
-# 
+# A matrix (3.5)
 #-----------------------------------------------------------------------
 A_matrix:=Matrix([[A11,A12,B13_tilde],
                   [A21,A22,B23_tilde],
@@ -31,7 +44,7 @@ C33:=1/12+q^2;
 
 
 #-----------------------------------------------------------------------
-# 
+# G matrix (3.6)
 #-----------------------------------------------------------------------
 G_matrix:=Matrix([[G11_hat,G12_hat],
                   [G21_hat,G22_hat],
@@ -47,7 +60,7 @@ H32_hat:=1/24*((2*q+1)^3-(2*q-1)^3*cos(2*alpha));
 
 
 #-----------------------------------------------------------------------
-# 
+# g hat matrix from (B5)
 #-----------------------------------------------------------------------
 g_hat_matrix:=MatrixInverse(A_matrix).G_matrix:
 
@@ -55,23 +68,28 @@ h31_hat:=g_hat_matrix[3,1];
 h32_hat:=g_hat_matrix[3,2];
 
 #-----------------------------------------------------------------------
-# 
+# Check for the specific values quoted in Fig. 5
 #-----------------------------------------------------------------------
-specific_values_list:=[alpha=Pi/4,q=0.4];
+specific_values_list:=[alpha=Pi/4,q=0.4]; #,W_hat=0.1];
 
-theta_eq:=evalf(subs(specific_values_list,1/2*arctan(h31_hat,h32_hat)));
+#-----------------------------------------------------------------------
+# Bit of confusion here. theta_0 is introduced as the "orientation such that 
+# \dot{\theta} =0." but it isn't...
+#-----------------------------------------------------------------------
+theta_0:=evalf(subs(specific_values_list,1/2*arctan(h31_hat,h32_hat)));
 condition_for_stable_fixed_point_this_has_to_be_bigger_than_1:=evalf(subs(specific_values_list,h31_hat^2+h32_hat^2));
 
 
 #-----------------------------------------------------------------------
-# 
+# Get the actual equilibrium angle by solving (2.17) from first principles
 #-----------------------------------------------------------------------
 soln_for_theta_eq:= solve(-1+h31*sin(2*theta)+h32*cos(2*theta)=0,theta);
 
 
 
 #-----------------------------------------------------------------------
-# 
+# Work it out! Yes, this gives the stable (and presumably the unstable)
+# angles. One of them agrees with the one quoted in caption of Fig. 5.
 #-----------------------------------------------------------------------
 hh_31 := evalf(subs(specific_values_list,h31_hat));
 hh_32 := evalf(subs(specific_values_list,h32_hat));
@@ -82,22 +100,33 @@ theta_eq2:=evalf(subs(h31=hh_31,h32=hh_32,soln_for_theta_eq[2]));
 
 
 
-
+###################################################################
+# Redo Roggeveen and Stone JFM but without the 6x6 matrix
+###################################################################
 
 
 #-----------------------------------------------------------------------
-# Parametrise shape: 0 [symmetric] < q < 1/2 [straight because inclined
+# Parametrise shape: Limits: 0 [symmetric] < q < 1/2 [straight because inclined
 # arm then has zero length]
-# l (q-1/2) < s < l (q+1/2)
+# l (q-1/2) < s < l (q+1/2). Length are nondimensionalised on l so simply drop.
 #-----------------------------------------------------------------------
 r_body_frame_neg_s[1]:=-s*cos(alpha);
 r_body_frame_neg_s[2]:=-s*sin(alpha);
 
 r_body_frame_pos_s[1]:=s;
-r_body_frame_pos_s[2]:=0;
+r_body_frame_pos_s[2]:=0+W_hat*s^2;
+
+radius:=1/W_hat;
+r_body_frame_pos_s[1]:=radius*sin(s*W_hat);
+r_body_frame_pos_s[2]:=radius-radius*cos(s*W_hat); #0+W_hat*s^2;
+
+
+arclength_differential_squared:=simplify(diff(r_body_frame_pos_s[1],s)^2+diff(r_body_frame_pos_s[2],s)^2);
+
+
 
 # Test parameters
-test_parameters:=[q=0,alpha=0.3*Pi,R0[1](t)=2*t,R0[2](t)=t,theta(t)=t];
+test_parameters:=[q=0,alpha=0.3*Pi,W_hat=0.1,R0[1](t)=2*t,R0[2](t)=t,theta(t)=t];
 
 #-----------------------------------------------------------------------
 # Rotate:
@@ -139,17 +168,12 @@ tangent_lab_frame_pos_s[2]:=diff(r_lab_frame_pos_s[2],s);
 
 
 
-#t_plot:=0.1;
-#arrow_list_neg_s:=arrow({seq(
-# <subs(t=t_plot,subs(test_parameters,r_lab_frame_neg_s[1])),
-#  subs(t=t_plot,subs(test_parameters,r_lab_frame_neg_s[2]))>, s = -1/2 .. 0)},scaling=constrained):
-#display(arrow_list_neg_s);
 
 
 
 
 #-----------------------------------------------------------------------
-# Far field velocity
+# Far field velocity (non-dim on shear rate so drop gamma dot)
 #-----------------------------------------------------------------------
 test_flow_parameters:=[];
 plot_test_flow_parameters:=[];
@@ -160,13 +184,11 @@ far_field_veloc_type:="constant_flow2";
 far_field_veloc_type:="rigid_body_rotation";
 far_field_veloc_type:="shear_flow1";
 far_field_veloc_type:="shear_flow2";
-far_field_veloc_type:="shear_flow_jfm";
 far_field_veloc_type:="shear_flow3";
-far_field_veloc_type:="shear_flow4";
 
 #---------------------------------------------------
 # Shear flow: Vertical straight fibre, centred at origin
-# should experience zero drag.
+# should experience zero drag. Correct.
 #---------------------------------------------------
 if far_field_veloc_type = "shear_flow1" then
   far_field_veloc_lab_frame:=Vector([x[2],0]);
@@ -175,46 +197,25 @@ if far_field_veloc_type = "shear_flow1" then
 #---------------------------------------------------
 # Shear flow: Vertical straight fibre, rotating with
 # shear rate should experience zero drag and torque
-# (at t=0 only!)
+# (at t=0 only!) Correct.
 #---------------------------------------------------
 elif far_field_veloc_type = "shear_flow2" then
   far_field_veloc_lab_frame:=Vector([x[2],0]);
   test_flow_parameters:=[q=0,alpha=Pi,theta(t)=Pi/2-t,R0[1](t)=0,R0[2](t)=0];
-  plot_test_flow_parameters:=[UU=0.2,VV=0.2,t=0.2]; 
+  plot_test_flow_parameters:=[UU=0.2,VV=0.2,t=0.2];
 #---------------------------------------------------
-# Shear flow: Allegedly there are solutions with
-# constant orientation (Theta_eq) and constant
-# vertical drift (VV).
-#---------------------------------------------------
-elif far_field_veloc_type = "shear_flow" then
-  far_field_veloc_lab_frame:=Vector([x[2],0]);
-  test_flow_parameters:=[theta(t)=Theta_eq,R0[1](t)=UU*t,R0[2](t)=VV*t];
-  plot_test_flow_parameters:=[q=0,alpha=0.3,Theta_eq=0.2,UU=0.2,VV=0.2,t=0.2]; 
-#---------------------------------------------------
-# Shear flow as in JFM.
-#---------------------------------------------------
-elif far_field_veloc_type = "shear_flow_jfm" then
-  far_field_veloc_lab_frame:=Vector([x[2],0]);
-  test_flow_parameters:=[op(specific_values_list),theta(t)=theta_eq1,R0[1](t)=1/2*VV*t^2+UUU0*t+XXX0,R0[2](t)=VV*t];
-  plot_test_flow_parameters:=[UU=0.2,VV=0.2,t=0.2]; 
-#---------------------------------------------------
-# Shear flow ... This should create a constant torque
-# and constant y drag, but x drag increases somehow
-# (until we've fixed the right time-dependence)
+# Shear flow; redoing JFM. We know that the angle
+# is constant and that the particle drifts in y direction
+# with constant speed. As it drifts it has to pick
+# up speed (from the shear flow) but there's also an
+# offset (UUU0). Functional form worked out backwards
+# via some trial and error; JFM paper doesn't comment
+# on this aspect.
 #---------------------------------------------------
 elif far_field_veloc_type = "shear_flow3" then
   far_field_veloc_lab_frame:=Vector([x[2],0]);
-  test_flow_parameters:=[q=0,alpha=Pi/3,theta(t)=-Pi/6,R0[1](t)=1/2*VV*t^2,R0[2](t)=VV*t];
-  plot_test_flow_parameters:=[VV=0.2,t=0.2];
-#---------------------------------------------------
-# Shear flow ... This should create a constant torque
-# and constant y drag, but x drag increases somehow
-# (until we've fixed the right time-dependence)                      <---- hierher
-#---------------------------------------------------
-elif far_field_veloc_type = "shear_flow4" then
-  far_field_veloc_lab_frame:=Vector([x[2],0]);
   test_flow_parameters:=[op(specific_values_list),theta(t)=Theta_eq,R0[1](t)=1/2*VV*t^2+UUU0*t,R0[2](t)=VV*t];
-  plot_test_flow_parameters:=[Theta_eq=theta_eq1,VV=0.2,UUU0=0,t=0.2]; 
+  plot_test_flow_parameters:=[Theta_eq=theta_eq1,VV=0.2,UUU0=0,t=0.2,W_hat=0.1]; 
 #---------------------------------------------------
 # Constant flow; should have drag only in x direction
 #---------------------------------------------------
@@ -293,7 +294,7 @@ drag_lab_frame:=Vector([int(traction_lab_frame_neg_s[1],s=(q-1/2)..0)+
                         int(traction_lab_frame_pos_s[2],s=0..(q+1/2))]);
 
 #-----------------------------------------------------------------------
-# torque about lab frame origin hierher should this be cog?
+# torque about lab frame origin
 #-----------------------------------------------------------------------
 infinitesimal_torque_neg_s:=(r_lab_frame_neg_s[1]-R0[1](t))*traction_lab_frame_neg_s[2]-
                             (r_lab_frame_neg_s[2]-R0[2](t))*traction_lab_frame_neg_s[1];
@@ -309,6 +310,9 @@ torque_lab_frame:=int(infinitesimal_torque_neg_s,s=(q-1/2)..0)+
 
 
 
+#-----------------------------------------------------------------------
+# Check resultant drag and torque and plot the thing
+#-----------------------------------------------------------------------
 test_drag_x:=simplify(eval(subs(test_flow_parameters,drag_lab_frame[1])));
 test_drag_y:=simplify(eval(subs(test_flow_parameters,drag_lab_frame[2])));
 test_torque:=simplify(eval(subs(test_flow_parameters,torque_lab_frame)));
@@ -321,3 +325,49 @@ plot([
       subs(plot_test_flow_parameters,subs(test_flow_parameters,r_lab_frame_pos_s[2])),
           s=0..subs(test_flow_parameters,(q+1/2))]
       ],scaling=constrained);
+
+
+W_hat:=0.0001;
+soln:=fsolve({test_drag_x,test_drag_y,test_torque},{UUU0=-10..10,VV=-10..10,Theta_eq=0..2*Pi,Theta_eq=0..2*Pi});
+
+#-----------------------------------------------------------------------
+# Now solve for relevant parameters (apparently we have to specify
+# limits for all or none of the unknowns; want to restrict theta
+# to sensible range).
+#-----------------------------------------------------------------------
+
+VV_ig:=0.0;
+UUU0_ig:=0.0;
+Theta_eq_ig:=0.0;
+W_hat_theta_eq_soln_list:=[];
+
+success_count:=0;
+nstep:=50;
+W_hat_max:=0.6;
+for i from 0 to nstep do
+   W_hat:=i/nstep*W_hat_max+0.0001;
+   for bla from 1 to 1 do
+     soln:=fsolve({test_drag_x,test_drag_y,test_torque},{UUU0=UUU0_ig,VV=VV_ig,Theta_eq=Theta_eq_ig}):
+   end do;
+   if substring(convert(soln, 'string'), 2 .. 6) = "solve" then
+      print("---------Soln not found------------");
+   else
+      UUU0_ig := subs(soln, UUU0);
+      VV_ig := subs(soln, VV);
+      Theta_eq_ig := frem(subs(soln, Theta_eq),evalf(2*Pi));
+      success_count:=success_count+1;
+      W_hat_theta_eq_soln_list := [op(W_hat_theta_eq_soln_list), [W_hat, Theta_eq_ig]];
+      actual_plot[success_count]:=
+      plot([
+           [subs(t=0,soln,subs(test_flow_parameters,r_lab_frame_neg_s[1])),
+            subs(t=0,soln,subs(test_flow_parameters,r_lab_frame_neg_s[2])),
+            s=subs(test_flow_parameters,(q-1/2))..0],
+           [subs(t=0,soln,subs(test_flow_parameters,r_lab_frame_pos_s[1])),
+            subs(t=0,soln,subs(test_flow_parameters,r_lab_frame_pos_s[2])),
+            s=0..subs(test_flow_parameters,(q+1/2))]
+           ],scaling=constrained,view=[-1.5..1.5,-1.5..1.5],title = cat("W_hat=", i,"/",nstep,"; theta_eq=",Theta_eq_ig));
+   end if;
+end do;
+
+display([seq(actual_plot[t], t = 1 .. success_count)], insequence = true);
+plot(W_hat_theta_eq_soln_list);
