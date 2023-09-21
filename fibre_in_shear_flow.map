@@ -2,6 +2,9 @@ interface(echo=4);
 with(LinearAlgebra):
 with(plots):
 
+#assume(W_hat,real);
+#Digits:=40;
+
 
 tangent_start:=Vector(2);
 tangent_end  :=Vector(2);
@@ -70,7 +73,7 @@ h32_hat:=g_hat_matrix[3,2];
 #-----------------------------------------------------------------------
 # Check for the specific values quoted in Fig. 5
 #-----------------------------------------------------------------------
-specific_values_list:=[alpha=Pi/4,q=0.4]; #,W_hat=0.1];
+specific_values_list:=[alpha=Pi/4,q=4/10];
 
 #-----------------------------------------------------------------------
 # Bit of confusion here. theta_0 is introduced as the "orientation such that 
@@ -108,21 +111,17 @@ theta_eq2:=evalf(subs(h31=hh_31,h32=hh_32,soln_for_theta_eq[2]));
 #-----------------------------------------------------------------------
 # Parametrise shape: Limits: 0 [symmetric] < q < 1/2 [straight because inclined
 # arm then has zero length]
-# l (q-1/2) < s < l (q+1/2). Length are nondimensionalised on l so simply drop.
+# l (q-1/2) < xi < l (q+1/2). Length are nondimensionalised on l so simply drop.
 #-----------------------------------------------------------------------
-r_body_frame_neg_s[1]:=-s*cos(alpha);
-r_body_frame_neg_s[2]:=-s*sin(alpha);
+r_body_frame_neg_xi[1]:=-xi*cos(alpha);
+r_body_frame_neg_xi[2]:=-xi*sin(alpha);
 
-r_body_frame_pos_s[1]:=s;
-r_body_frame_pos_s[2]:=0+W_hat*s^2;
+#r_body_frame_pos_xi[1]:=xi;
+#r_body_frame_pos_xi[2]:=0+W_hat^2*xi^2;
 
 radius:=1/W_hat;
-r_body_frame_pos_s[1]:=radius*sin(s*W_hat);
-r_body_frame_pos_s[2]:=radius-radius*cos(s*W_hat); #0+W_hat*s^2;
-
-
-arclength_differential_squared:=simplify(diff(r_body_frame_pos_s[1],s)^2+diff(r_body_frame_pos_s[2],s)^2);
-
+r_body_frame_pos_xi[1]:=radius*sin(xi*W_hat);
+r_body_frame_pos_xi[2]:=radius-radius*cos(xi*W_hat); 
 
 
 # Test parameters
@@ -131,15 +130,15 @@ test_parameters:=[q=0,alpha=0.3*Pi,W_hat=0.1,R0[1](t)=2*t,R0[2](t)=t,theta(t)=t]
 #-----------------------------------------------------------------------
 # Rotate:
 #-----------------------------------------------------------------------
-r_lab_frame_neg_s[1]:=R0[1](t)+r_body_frame_neg_s[1]*cos(theta(t))
-                              -r_body_frame_neg_s[2]*sin(theta(t));
-r_lab_frame_neg_s[2]:=R0[2](t)+r_body_frame_neg_s[1]*sin(theta(t))
-                              +r_body_frame_neg_s[2]*cos(theta(t));
+r_lab_frame_neg_xi[1]:=R0[1](t)+r_body_frame_neg_xi[1]*cos(theta(t))
+                              -r_body_frame_neg_xi[2]*sin(theta(t));
+r_lab_frame_neg_xi[2]:=R0[2](t)+r_body_frame_neg_xi[1]*sin(theta(t))
+                              +r_body_frame_neg_xi[2]*cos(theta(t));
 
-r_lab_frame_pos_s[1]:=R0[1](t)+r_body_frame_pos_s[1]*cos(theta(t))
-                              -r_body_frame_pos_s[2]*sin(theta(t));
-r_lab_frame_pos_s[2]:=R0[2](t)+r_body_frame_pos_s[1]*sin(theta(t))
-                              +r_body_frame_pos_s[2]*cos(theta(t));
+r_lab_frame_pos_xi[1]:=R0[1](t)+r_body_frame_pos_xi[1]*cos(theta(t))
+                              -r_body_frame_pos_xi[2]*sin(theta(t));
+r_lab_frame_pos_xi[2]:=R0[2](t)+r_body_frame_pos_xi[1]*sin(theta(t))
+                              +r_body_frame_pos_xi[2]*cos(theta(t));
 
 
 
@@ -147,12 +146,12 @@ r_lab_frame_pos_s[2]:=R0[2](t)+r_body_frame_pos_s[1]*sin(theta(t))
 # Have a look...
 #-----------------------------------------------------------------------
 animate(plot,[[
-         [subs(test_parameters,r_lab_frame_neg_s[1]),
-          subs(test_parameters,r_lab_frame_neg_s[2]),
-          s=-1/2..0],
-         [subs(test_parameters,r_lab_frame_pos_s[1]),
-          subs(test_parameters,r_lab_frame_pos_s[2]),
-          s=0..1/2]
+         [subs(test_parameters,r_lab_frame_neg_xi[1]),
+          subs(test_parameters,r_lab_frame_neg_xi[2]),
+          xi=-1/2..0],
+         [subs(test_parameters,r_lab_frame_pos_xi[1]),
+          subs(test_parameters,r_lab_frame_pos_xi[2]),
+          xi=0..1/2]
          ]],t=0..1,scaling=constrained);
 
 
@@ -160,16 +159,34 @@ animate(plot,[[
 #-----------------------------------------------------------------------
 # Tangents:
 #-----------------------------------------------------------------------
-tangent_lab_frame_neg_s[1]:=diff(r_lab_frame_neg_s[1],s);
-tangent_lab_frame_neg_s[2]:=diff(r_lab_frame_neg_s[2],s);
+non_normalised_tangent_lab_frame_neg_xi[1]:=diff(r_lab_frame_neg_xi[1],xi);
+non_normalised_tangent_lab_frame_neg_xi[2]:=diff(r_lab_frame_neg_xi[2],xi);
 
-tangent_lab_frame_pos_s[1]:=diff(r_lab_frame_pos_s[1],s);
-tangent_lab_frame_pos_s[2]:=diff(r_lab_frame_pos_s[2],s);
-
-
+non_normalised_tangent_lab_frame_pos_xi[1]:=diff(r_lab_frame_pos_xi[1],xi);
+non_normalised_tangent_lab_frame_pos_xi[2]:=diff(r_lab_frame_pos_xi[2],xi);
 
 
 
+
+#-----------------------------------------------------------------------
+# Normalise (and get jacobian)
+#-----------------------------------------------------------------------
+ds_dxi_neg_xi:=simplify(sqrt(non_normalised_tangent_lab_frame_neg_xi[1]^2+
+                             non_normalised_tangent_lab_frame_neg_xi[2]^2));
+                             
+ds_dxi_pos_xi:=simplify(sqrt(non_normalised_tangent_lab_frame_pos_xi[1]^2+
+                             non_normalised_tangent_lab_frame_pos_xi[2]^2));
+
+
+tangent_lab_frame_neg_xi[1]:=non_normalised_tangent_lab_frame_neg_xi[1]/ds_dxi_neg_xi;
+tangent_lab_frame_neg_xi[2]:=non_normalised_tangent_lab_frame_neg_xi[2]/ds_dxi_neg_xi;
+
+test_neg_xi:=simplify(tangent_lab_frame_neg_xi[1]^2+tangent_lab_frame_neg_xi[2]^2);
+
+tangent_lab_frame_pos_xi[1]:=non_normalised_tangent_lab_frame_pos_xi[1]/ds_dxi_pos_xi;
+tangent_lab_frame_pos_xi[2]:=non_normalised_tangent_lab_frame_pos_xi[2]/ds_dxi_pos_xi;
+
+test_pos_xi:=simplify(tangent_lab_frame_pos_xi[1]^2+tangent_lab_frame_pos_xi[2]^2);
 
 
 #-----------------------------------------------------------------------
@@ -246,19 +263,19 @@ end if;
 #-----------------------------------------------------------------------
 # Far field velocity evaluated on fibre
 #-----------------------------------------------------------------------
-far_field_veloc_lab_frame_neg_s:=subs(x[1]=r_lab_frame_neg_s[1],x[2]=r_lab_frame_neg_s[2],far_field_veloc_lab_frame);
-far_field_veloc_lab_frame_pos_s:=subs(x[1]=r_lab_frame_pos_s[1],x[2]=r_lab_frame_pos_s[2],far_field_veloc_lab_frame);
+far_field_veloc_lab_frame_neg_xi:=subs(x[1]=r_lab_frame_neg_xi[1],x[2]=r_lab_frame_neg_xi[2],far_field_veloc_lab_frame);
+far_field_veloc_lab_frame_pos_xi:=subs(x[1]=r_lab_frame_pos_xi[1],x[2]=r_lab_frame_pos_xi[2],far_field_veloc_lab_frame);
 
 
 
 #-----------------------------------------------------------------------
 # Fibre velocity from kinematics
 #-----------------------------------------------------------------------
-fibre_veloc_lab_frame_neg_s:=Vector([diff(r_lab_frame_neg_s[1],t),
-                                     diff(r_lab_frame_neg_s[2],t)]);
+fibre_veloc_lab_frame_neg_xi:=Vector([diff(r_lab_frame_neg_xi[1],t),
+                                     diff(r_lab_frame_neg_xi[2],t)]);
 
-fibre_veloc_lab_frame_pos_s:=Vector([diff(r_lab_frame_pos_s[1],t),
-                                     diff(r_lab_frame_pos_s[2],t)]);
+fibre_veloc_lab_frame_pos_xi:=Vector([diff(r_lab_frame_pos_xi[1],t),
+                                     diff(r_lab_frame_pos_xi[2],t)]);
 
 
 
@@ -267,43 +284,43 @@ fibre_veloc_lab_frame_pos_s:=Vector([diff(r_lab_frame_pos_s[1],t),
 #-----------------------------------------------------------------------
 # Resistance matrix
 #-----------------------------------------------------------------------
-resistance_matrix_neg_s:=Matrix([[1-1/2*tangent_lab_frame_neg_s[1]^2,                            -1/2*tangent_lab_frame_neg_s[1]*tangent_lab_frame_neg_s[2]],
-                                 [ -1/2*tangent_lab_frame_neg_s[1]*tangent_lab_frame_neg_s[2],  1-1/2*tangent_lab_frame_neg_s[2]^2]]);
+resistance_matrix_neg_xi:=Matrix([[1-1/2*tangent_lab_frame_neg_xi[1]^2,                             -1/2*tangent_lab_frame_neg_xi[1]*tangent_lab_frame_neg_xi[2]],
+                                 [  -1/2*tangent_lab_frame_neg_xi[1]*tangent_lab_frame_neg_xi[2],  1-1/2*tangent_lab_frame_neg_xi[2]^2]]);
                                 
-resistance_matrix_pos_s:=Matrix([[1-1/2*tangent_lab_frame_pos_s[1]^2,                           -1/2*tangent_lab_frame_pos_s[1]*tangent_lab_frame_pos_s[2]],
-                                 [ -1/2*tangent_lab_frame_pos_s[1]*tangent_lab_frame_pos_s[2],  1-1/2*tangent_lab_frame_pos_s[2]^2]]);
+resistance_matrix_pos_xi:=Matrix([[1-1/2*tangent_lab_frame_pos_xi[1]^2,                             -1/2*tangent_lab_frame_pos_xi[1]*tangent_lab_frame_pos_xi[2]],
+                                 [  -1/2*tangent_lab_frame_pos_xi[1]*tangent_lab_frame_pos_xi[2],  1-1/2*tangent_lab_frame_pos_xi[2]^2]]);
                                 
 
 
 #-----------------------------------------------------------------------
 # traction
 #-----------------------------------------------------------------------
-traction_lab_frame_neg_s:=Vector(2):
-traction_lab_frame_neg_s:=resistance_matrix_neg_s.(far_field_veloc_lab_frame_neg_s-fibre_veloc_lab_frame_neg_s);
+traction_lab_frame_neg_xi:=Vector(2):
+traction_lab_frame_neg_xi:=resistance_matrix_neg_xi.(far_field_veloc_lab_frame_neg_xi-fibre_veloc_lab_frame_neg_xi);
 
-traction_lab_frame_pos_s:=Vector(2):
-traction_lab_frame_pos_s:=resistance_matrix_pos_s.(far_field_veloc_lab_frame_pos_s-fibre_veloc_lab_frame_pos_s);
+traction_lab_frame_pos_xi:=Vector(2):
+traction_lab_frame_pos_xi:=resistance_matrix_pos_xi.(far_field_veloc_lab_frame_pos_xi-fibre_veloc_lab_frame_pos_xi);
 
 
 #-----------------------------------------------------------------------
 # drag
 #-----------------------------------------------------------------------
-drag_lab_frame:=Vector([int(traction_lab_frame_neg_s[1],s=(q-1/2)..0)+
-                        int(traction_lab_frame_pos_s[1],s=0..(q+1/2)),
-                        int(traction_lab_frame_neg_s[2],s=(q-1/2)..0)+
-                        int(traction_lab_frame_pos_s[2],s=0..(q+1/2))]);
+drag_lab_frame:=Vector([int(traction_lab_frame_neg_xi[1]*ds_dxi_neg_xi,xi=(q-1/2)..0)+
+                        int(traction_lab_frame_pos_xi[1]*ds_dxi_pos_xi,xi=0..(q+1/2)),
+                        int(traction_lab_frame_neg_xi[2]*ds_dxi_neg_xi,xi=(q-1/2)..0)+
+                        int(traction_lab_frame_pos_xi[2]*ds_dxi_pos_xi,xi=0..(q+1/2))]);
 
 #-----------------------------------------------------------------------
-# torque about lab frame origin
+# torque about corner of boomerang (xi=0)
 #-----------------------------------------------------------------------
-infinitesimal_torque_neg_s:=(r_lab_frame_neg_s[1]-R0[1](t))*traction_lab_frame_neg_s[2]-
-                            (r_lab_frame_neg_s[2]-R0[2](t))*traction_lab_frame_neg_s[1];
+infinitesimal_torque_neg_xi:=(r_lab_frame_neg_xi[1]-R0[1](t))*traction_lab_frame_neg_xi[2]-
+                             (r_lab_frame_neg_xi[2]-R0[2](t))*traction_lab_frame_neg_xi[1];
 
-infinitesimal_torque_pos_s:=(r_lab_frame_pos_s[1]-R0[1](t))*traction_lab_frame_pos_s[2]-
-                            (r_lab_frame_pos_s[2]-R0[2](t))*traction_lab_frame_pos_s[1];
+infinitesimal_torque_pos_xi:=(r_lab_frame_pos_xi[1]-R0[1](t))*traction_lab_frame_pos_xi[2]-
+                             (r_lab_frame_pos_xi[2]-R0[2](t))*traction_lab_frame_pos_xi[1];
 
-torque_lab_frame:=int(infinitesimal_torque_neg_s,s=(q-1/2)..0)+
-                  int(infinitesimal_torque_pos_s,s=0..(q+1/2));
+torque_lab_frame:=int(infinitesimal_torque_neg_xi*ds_dxi_neg_xi,xi=(q-1/2)..0)+
+                  int(infinitesimal_torque_pos_xi*ds_dxi_pos_xi,xi=0..(q+1/2));
 
 
 
@@ -318,24 +335,31 @@ test_drag_y:=simplify(eval(subs(test_flow_parameters,drag_lab_frame[2])));
 test_torque:=simplify(eval(subs(test_flow_parameters,torque_lab_frame)));
 
 plot([
-     [subs(plot_test_flow_parameters,subs(test_flow_parameters,r_lab_frame_neg_s[1])),
-      subs(plot_test_flow_parameters,subs(test_flow_parameters,r_lab_frame_neg_s[2])),
-          s=subs(test_flow_parameters,(q-1/2))..0],
-     [subs(plot_test_flow_parameters,subs(test_flow_parameters,r_lab_frame_pos_s[1])),
-      subs(plot_test_flow_parameters,subs(test_flow_parameters,r_lab_frame_pos_s[2])),
-          s=0..subs(test_flow_parameters,(q+1/2))]
+     [subs(plot_test_flow_parameters,subs(test_flow_parameters,r_lab_frame_neg_xi[1])),
+      subs(plot_test_flow_parameters,subs(test_flow_parameters,r_lab_frame_neg_xi[2])),
+          xi=subs(test_flow_parameters,(q-1/2))..0],
+     [subs(plot_test_flow_parameters,subs(test_flow_parameters,r_lab_frame_pos_xi[1])),
+      subs(plot_test_flow_parameters,subs(test_flow_parameters,r_lab_frame_pos_xi[2])),
+          xi=0..subs(test_flow_parameters,(q+1/2))]
       ],scaling=constrained);
 
 
+
+
+#-----------------------------------------------------------------------
+# Quick check: 
+#-----------------------------------------------------------------------
+#assign(W_hat=0.0001);
 W_hat:=0.0001;
-soln:=fsolve({test_drag_x,test_drag_y,test_torque},{UUU0=-10..10,VV=-10..10,Theta_eq=0..2*Pi,Theta_eq=0..2*Pi});
+soln:=fsolve({test_drag_x,test_drag_y,test_torque},{UUU0=-10..10,VV=-10..10,Theta_eq=0..2*Pi});
+
+
 
 #-----------------------------------------------------------------------
 # Now solve for relevant parameters (apparently we have to specify
 # limits for all or none of the unknowns; want to restrict theta
 # to sensible range).
 #-----------------------------------------------------------------------
-
 VV_ig:=0.0;
 UUU0_ig:=0.0;
 Theta_eq_ig:=0.0;
@@ -344,8 +368,9 @@ W_hat_theta_eq_soln_list:=[];
 success_count:=0;
 nstep:=50;
 W_hat_max:=0.6;
+W_hat_offset:=1/10000;
 for i from 0 to nstep do
-   W_hat:=i/nstep*W_hat_max+0.0001;
+   W_hat:=i/nstep*W_hat_max+W_hat_offset;
    for bla from 1 to 1 do
      soln:=fsolve({test_drag_x,test_drag_y,test_torque},{UUU0=UUU0_ig,VV=VV_ig,Theta_eq=Theta_eq_ig}):
    end do;
@@ -359,13 +384,13 @@ for i from 0 to nstep do
       W_hat_theta_eq_soln_list := [op(W_hat_theta_eq_soln_list), [W_hat, Theta_eq_ig]];
       actual_plot[success_count]:=
       plot([
-           [subs(t=0,soln,subs(test_flow_parameters,r_lab_frame_neg_s[1])),
-            subs(t=0,soln,subs(test_flow_parameters,r_lab_frame_neg_s[2])),
-            s=subs(test_flow_parameters,(q-1/2))..0],
-           [subs(t=0,soln,subs(test_flow_parameters,r_lab_frame_pos_s[1])),
-            subs(t=0,soln,subs(test_flow_parameters,r_lab_frame_pos_s[2])),
-            s=0..subs(test_flow_parameters,(q+1/2))]
-           ],scaling=constrained,view=[-1.5..1.5,-1.5..1.5],title = cat("W_hat=", i,"/",nstep,"; theta_eq=",Theta_eq_ig));
+           [subs(t=0,soln,subs(test_flow_parameters,r_lab_frame_neg_xi[1])),
+            subs(t=0,soln,subs(test_flow_parameters,r_lab_frame_neg_xi[2])),
+            xi=subs(test_flow_parameters,(q-1/2))..0],
+           [subs(t=0,soln,subs(test_flow_parameters,r_lab_frame_pos_xi[1])),
+            subs(t=0,soln,subs(test_flow_parameters,r_lab_frame_pos_xi[2])),
+            xi=0..subs(test_flow_parameters,(q+1/2))]
+           ],scaling=constrained,view=[-1.5..1.5,-1.5..1.5],title = cat("W_hat=", i,"/",nstep," + ",W_hat_offset,"; theta_eq=",Theta_eq_ig));
    end if;
 end do;
 
